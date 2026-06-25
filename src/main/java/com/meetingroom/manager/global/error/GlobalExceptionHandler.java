@@ -1,0 +1,68 @@
+package com.meetingroom.manager.global.error;
+
+import com.meetingroom.manager.global.common.response.ApiResponse;
+import com.meetingroom.manager.global.error.code.CommonErrorCode;
+import com.meetingroom.manager.global.error.code.FileErrorCode;
+import jakarta.validation.ConstraintViolationException;
+import com.meetingroom.manager.global.error.exception.BusinessManagerException;
+import com.meetingroom.manager.global.error.exception.ExternalServiceManagerException;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.AuthenticationException;
+import org.springframework.web.HttpRequestMethodNotSupportedException;
+import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
+
+
+@RestControllerAdvice
+public class GlobalExceptionHandler {
+    // 유효성 검사 예외 처리
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ResponseEntity<ApiResponse<ErrorResponse>> handleMethodArgumentNotValid(MethodArgumentNotValidException ex) {
+        return ResponseEntity.status(CommonErrorCode.INVALID_REQUEST.getHttpStatus()).body(ApiResponse.validationError(ex.getBindingResult()));
+    }
+
+    // 파라미터 유효성 검사 예외 처리
+    @ExceptionHandler(ConstraintViolationException.class)
+    public ResponseEntity<ApiResponse<ErrorResponse>> handleConstraintViolationException(ConstraintViolationException ex) {
+        return ResponseEntity.status(CommonErrorCode.INVALID_REQUEST.getHttpStatus()).body(ApiResponse.validationError(ex));
+    }
+
+    // HTTP 메서드 오류 처리
+    @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
+    public ResponseEntity<ApiResponse<ErrorResponse>> handleHttpRequestMethodNotSupported(HttpRequestMethodNotSupportedException ex) {
+        return ResponseEntity.status(CommonErrorCode.METHOD_NOT_ALLOWED.getHttpStatus()).body(ApiResponse.error(CommonErrorCode.METHOD_NOT_ALLOWED));
+    }
+
+    // 비즈니스 로직 예외 처리
+    @ExceptionHandler(BusinessManagerException.class)
+    public ResponseEntity<ApiResponse<ErrorResponse>> handleBusinessException(BusinessManagerException ex) {
+        return ResponseEntity.status(ex.getErrorCode().getHttpStatus()).body(ApiResponse.error(ex.getErrorCode()));
+    }
+
+    // 외부 서비스 예외 처리
+    @ExceptionHandler(ExternalServiceManagerException.class)
+    public ResponseEntity<ApiResponse<ErrorResponse>> handleExternalServiceException(ExternalServiceManagerException ex) {
+        return ResponseEntity.status(ex.getErrorCode().getHttpStatus()).body(ApiResponse.error(ex.getErrorCode()));
+    }
+
+    // 스프링 시큐리티 예외 처리
+    @ExceptionHandler(AuthenticationException.class)
+    public ResponseEntity<ApiResponse<ErrorResponse>> handleAccessDeniedException(AuthenticationException ex) throws AccessDeniedException {
+        throw ex;
+    }
+
+    // 파일 크기 초과 예외 처리 (max-file-size: 10MB)
+    @ExceptionHandler(MaxUploadSizeExceededException.class)
+    public ResponseEntity<ApiResponse<ErrorResponse>> handleMaxUploadSizeExceeded(MaxUploadSizeExceededException ex) {
+        return ResponseEntity.status(FileErrorCode.FILE_SIZE_EXCEEDED.getHttpStatus()).body(ApiResponse.error(FileErrorCode.FILE_SIZE_EXCEEDED));
+    }
+
+    // 그 외 모든 예외 처리
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<ApiResponse<ErrorResponse>> handleException(Exception ex) {
+        return ResponseEntity.status(CommonErrorCode.INTERNAL_SERVER_ERROR.getHttpStatus()).body(ApiResponse.error(CommonErrorCode.INTERNAL_SERVER_ERROR));
+    }
+}
